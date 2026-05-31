@@ -1,0 +1,13 @@
+[project]
+name = "consulting-dashboard"
+version = "1.0.0"
+description = "Admin dashboard for Entrepreneur Readiness Assessment Tool"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin Dashboard - Manisha Mozumder BCS</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #F0F4FA; --card: #ffffff; --border: #E8E2D9;
+  --accent: #82ABE3; --accent-dark: #5A8BC7; --text: #1a1a1a;
+  --text-muted: #666; --danger: #E74C3C; --success: #27AE60;
+  --warning: #F39C12;
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* Login */
+.login-wrap {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 2rem;
+}
+.login-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 2.5rem; max-width: 400px; width: 100%;
+  text-align: center;
+}
+.login-card h1 { font-family: 'Playfair Display', serif; font-size: 24px; margin-bottom: 0.5rem; }
+.login-card .brand-sub { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 2rem; }
+.login-card input {
+  width: 100%; padding: 12px 14px; border: 1px solid var(--border);
+  border-radius: 10px; font-size: 15px; margin-bottom: 1rem;
+  font-family: 'DM Sans', sans-serif; outline: none;
+}
+.login-card input:focus { border-color: var(--accent); }
+.login-error { color: var(--danger); font-size: 13px; margin-bottom: 1rem; display: none; }
+
+/* Dashboard */
+.dashboard { display: none; }
+.top-bar {
+  background: var(--card); border-bottom: 1px solid var(--border);
+  padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between;
+}
+.top-bar .brand { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; }
+.top-bar .brand span { color: var(--accent); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; display: block; font-family: 'DM Sans', sans-serif; font-weight: 400; }
+.top-bar-actions { display: flex; gap: 10px; align-items: center; }
+
+.btn {
+  padding: 10px 20px; border: none; border-radius: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-primary { background: var(--text); color: #fff; }
+.btn-primary:hover { background: #333; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: #c0392b; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover { background: #f5f5f5; }
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+
+.content { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+/* Stats Grid */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.stat-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 1.5rem;
+}
+.stat-card .stat-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 0.5rem; }
+.stat-card .stat-value { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; }
+.stat-card .stat-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+/* Charts */
+.charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+.chart-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 1.5rem;
+}
+.chart-card h3 { font-family: 'Playfair Display', serif; font-size: 16px; margin-bottom: 1rem; }
+.chart-container { position: relative; height: 250px; }
+
+/* Table */
+.table-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;
+}
+.table-card h3 { font-family: 'Playfair Display', serif; font-size: 18px; margin-bottom: 1rem; }
+.table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.search-input {
+  padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px;
+  font-size: 14px; width: 250px; outline: none; font-family: 'DM Sans', sans-serif;
+}
+.search-input:focus { border-color: var(--accent); }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  text-align: left; padding: 10px 12px; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);
+  border-bottom: 2px solid var(--border);
+}
+tbody td { padding: 12px; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+tbody tr:hover { background: #f9f9fb; }
+.score-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+}
+.score-high { background: #e8f5e9; color: #2e7d32; }
+.score-mid { background: #fff3e0; color: #e65100; }
+.score-low { background: #ffebee; color: #c62828; }
+.maturity-badge { font-size: 12px; color: var(--text-muted); }
+
+/* Detail Modal */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5); display: none; align-items: center;
+  justify-content: center; z-index: 1000; padding: 2rem;
+}
+.modal-overlay.active { display: flex; }
+.modal-content {
+  background: var(--card); border-radius: 16px; max-width: 700px;
+  width: 100%; max-height: 85vh; overflow-y: auto; padding: 2rem;
+}
+.modal-content h2 { font-family: 'Playfair Display', serif; margin-bottom: 1rem; }
+.modal-close { float: right; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+.detail-item label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); display: block; margin-bottom: 4px; }
+.detail-item .val { font-size: 15px; font-weight: 500; }
+.dim-bar-wrap { margin-bottom: 0.5rem; }
+.dim-bar-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 3px; }
+.dim-bar { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+.dim-bar-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.4s; }
+.reflection-item { background: #f9f9fb; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+.reflection-item .q { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+.reflection-item .a { font-size: 14px; }
+
+/* Confirm Dialog */
+.confirm-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5); display: none; align-items: center;
+  justify-content: center; z-index: 2000;
+}
+.confirm-overlay.active { display: flex; }
+.confirm-box {
+  background: var(--card); border-radius: 12px; padding: 2rem;
+  max-width: 400px; width: 100%; text-align: center;
+}
+.confirm-box h3 { margin-bottom: 0.5rem; color: var(--danger); }
+.confirm-box p { font-size: 14px; color: var(--text-muted); margin-bottom: 1.5rem; }
+.confirm-actions { display: flex; gap: 10px; justify-content: center; }
+
+.empty-state { text-align: center; padding: 3rem; color: var(--text-muted); }
+.empty-state h3 { font-family: 'Playfair Display', serif; margin-bottom: 0.5rem; color: var(--text); }
+
+@media (max-width: 768px) {
+  .charts-grid { grid-template-columns: 1fr; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .table-header { flex-direction: column; gap: 10px; }
+  .search-input { width: 100%; }
+  .top-bar { flex-direction: column; gap: 10px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div class="login-wrap" id="login-screen">
+  <div class="login-card">
+    <h1>Admin Dashboard</h1>
+    <div class="brand-sub">Manisha Mozumder Business Consulting</div>
+    <div class="login-error" id="login-error">Incorrect password. Try again.</div>
+    <input type="password" id="password-input" placeholder="Enter password" autofocus />
+    <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Sign In</button>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div class="dashboard" id="dashboard">
+  <div class="top-bar">
+    <div class="brand">
+      Dashboard
+      <span>Manisha Mozumder Business Consulting</span>
+    </div>
+    <div class="top-bar-actions">
+      <button class="btn btn-outline btn-sm" onclick="refreshData()">Refresh</button>
+      <button class="btn btn-danger btn-sm" onclick="showResetConfirm()">Reset All Data</button>
+      <button class="btn btn-outline btn-sm" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Stats -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Assessments</div>
+        <div class="stat-value" id="stat-total">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Average Score</div>
+        <div class="stat-value" id="stat-avg">0</div>
+        <div class="stat-sub">out of 5.0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Most Common Stage</div>
+        <div class="stat-value" id="stat-stage" style="font-size:20px">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Top Region</div>
+        <div class="stat-value" id="stat-region" style="font-size:20px">-</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Dimension Averages</h3>
+        <div class="chart-container"><canvas id="chart-dimensions"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Maturity Distribution</h3>
+        <div class="chart-container"><canvas id="chart-maturity"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Score Trend Over Time</h3>
+        <div class="chart-container"><canvas id="chart-trend"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Business Stage Breakdown</h3>
+        <div class="chart-container"><canvas id="chart-stages"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Submissions Table -->
+    <div class="table-card">
+      <div class="table-header">
+        <h3>All Submissions</h3>
+        <input type="text" class="search-input" id="search-input" placeholder="Search by name or business..." oninput="filterTable()"/>
+      </div>
+      <div id="table-container">
+        <div class="empty-state" id="empty-state">
+          <h3>No submissions yet</h3>
+          <p>Assessment responses will appear here once people complete the tool.</p>
+        </div>
+        <table id="submissions-table" style="display:none">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Business</th>
+              <th>Stage</th>
+              <th>Score</th>
+              <th>Maturity</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeDetailModal()">&times;</button>
+    <h2 id="detail-name"></h2>
+    <div class="detail-grid" id="detail-info"></div>
+    <h3 style="font-family:'Playfair Display',serif;margin-bottom:0.75rem">Dimension Scores</h3>
+    <div id="detail-dimensions" style="margin-bottom:1.5rem"></div>
+    <div id="detail-patterns" style="margin-bottom:1.5rem"></div>
+    <div id="detail-consulting" style="margin-bottom:1.5rem"></div>
+    <div id="detail-reflections" style="margin-bottom:1.5rem"></div>
+    <div id="detail-actions" style="margin-bottom:1rem"></div>
+  </div>
+</div>
+
+<!-- Reset Confirm -->
+<div class="confirm-overlay" id="reset-confirm">
+  <div class="confirm-box">
+    <h3>Reset All Data?</h3>
+    <p>This will permanently delete all assessment submissions. This action cannot be undone.</p>
+    <div class="confirm-actions">
+      <button class="btn btn-outline" onclick="hideResetConfirm()">Cancel</button>
+      <button class="btn btn-danger" onclick="doReset()">Yes, Reset Everything</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+let password = "";
+let allSubmissions = [];
+let charts = {};
+
+const STAGE_LABELS = {
+  idea: "Idea Stage", early: "Early Stage",
+  growing: "Growing", established: "Established", "": "Unknown"
+};
+const REGION_LABELS = {
+  north_america: "North America", western_europe: "Western Europe",
+  eastern_europe: "Eastern Europe", south_asia: "South Asia",
+  southeast_asia: "Southeast Asia", east_asia: "East Asia",
+  middle_east: "Middle East & North Africa", sub_saharan_africa: "Sub-Saharan Africa",
+  latin_america: "Latin America", oceania: "Oceania", "": "Unknown"
+};
+const PALETTE = ["#82ABE3","#5A8BC7","#2E5A88","#A8D5BA","#F4C463","#E8917E","#B8A9C9","#6EC5B8","#D4A574","#9BB5D6"];
+
+function $(id) { return document.getElementById(id); }
+
+function doLogin() {
+  password = $("password-input").value;
+  fetch(API + "/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password })
+  }).then(r => {
+    if (r.ok) {
+      $("login-screen").style.display = "none";
+      $("dashboard").style.display = "block";
+      refreshData();
+    } else {
+      $("login-error").style.display = "block";
+      $("password-input").value = "";
+      $("password-input").focus();
+    }
+  }).catch(() => {
+    $("login-error").textContent = "Connection error. Try again.";
+    $("login-error").style.display = "block";
+  });
+}
+
+$("password-input").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+
+function doLogout() {
+  password = "";
+  $("dashboard").style.display = "none";
+  $("login-screen").style.display = "flex";
+  $("password-input").value = "";
+  $("login-error").style.display = "none";
+}
+
+async function refreshData() {
+  try {
+    const [subsRes, analyticsRes] = await Promise.all([
+      fetch(API + "/api/submissions?password=" + encodeURIComponent(password)),
+      fetch(API + "/api/analytics?password=" + encodeURIComponent(password))
+    ]);
+    allSubmissions = await subsRes.json();
+    const analytics = await analyticsRes.json();
+    renderStats(analytics);
+    renderCharts(analytics);
+    renderTable(allSubmissions);
+  } catch (e) { console.error("Refresh error:", e); }
+}
+
+function renderStats(a) {
+  $("stat-total").textContent = a.total;
+  $("stat-avg").textContent = a.avg_score ? a.avg_score.toFixed(2) : "0";
+  const topStage = Object.entries(a.stage_distribution || {}).sort((a,b) => b[1]-a[1])[0];
+  $("stat-stage").textContent = topStage ? (STAGE_LABELS[topStage[0]] || topStage[0]) : "-";
+  const topRegion = Object.entries(a.region_distribution || {}).sort((a,b) => b[1]-a[1])[0];
+  $("stat-region").textContent = topRegion ? (REGION_LABELS[topRegion[0]] || topRegion[0]) : "-";
+}
+
+function renderCharts(a) {
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+
+  // Dimension Averages - Radar
+  const dimLabels = Object.keys(a.dimension_averages || {});
+  const dimValues = Object.values(a.dimension_averages || {});
+  if (dimLabels.length) {
+    charts.dimensions = new Chart($("chart-dimensions"), {
+      type: "radar",
+      data: {
+        labels: dimLabels,
+        datasets: [{ label: "Average Score", data: dimValues, backgroundColor: "rgba(130,171,227,0.2)", borderColor: "#82ABE3", borderWidth: 2, pointBackgroundColor: "#82ABE3" }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: { r: { min: 0, max: 5, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
+    });
+  }
+
+  // Maturity Distribution - Doughnut
+  const matLabels = Object.keys(a.maturity_distribution || {});
+  const matValues = Object.values(a.maturity_distribution || {});
+  if (matLabels.length) {
+    charts.maturity = new Chart($("chart-maturity"), {
+      type: "doughnut",
+      data: { labels: matLabels, datasets: [{ data: matValues, backgroundColor: PALETTE.slice(0, matLabels.length) }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom", labels: { font: { size: 11 } } } } }
+    });
+  }
+
+  // Score Trend - Line
+  const trend = (a.score_over_time || []).slice().sort((a,b) => a.date - b.date);
+  if (trend.length) {
+    charts.trend = new Chart($("chart-trend"), {
+      type: "line",
+      data: {
+        labels: trend.map(t => new Date(t.date * 1000).toLocaleDateString()),
+        datasets: [{ label: "Score", data: trend.map(t => t.score), borderColor: "#82ABE3", backgroundColor: "rgba(130,171,227,0.1)", fill: true, tension: 0.3 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 5 } }, plugins: { legend: { display: false } } }
+    });
+  }
+
+  // Stage Breakdown - Bar
+  const stLabels = Object.keys(a.stage_distribution || {}).map(k => STAGE_LABELS[k] || k);
+  const stValues = Object.values(a.stage_distribution || {});
+  if (stLabels.length) {
+    charts.stages = new Chart($("chart-stages"), {
+      type: "bar",
+      data: { labels: stLabels, datasets: [{ label: "Count", data: stValues, backgroundColor: PALETTE.slice(0, stLabels.length), borderRadius: 6 }] },
+      options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
+    });
+  }
+}
+
+function renderTable(submissions) {
+  const tbody = $("table-body");
+  if (!submissions.length) {
+    $("empty-state").style.display = "block";
+    $("submissions-table").style.display = "none";
+    return;
+  }
+  $("empty-state").style.display = "none";
+  $("submissions-table").style.display = "table";
+
+  tbody.innerHTML = submissions.map(s => {
+    const score = (s.overall_score || 0).toFixed(2);
+    const scoreClass = s.overall_score >= 3.5 ? "score-high" : s.overall_score >= 2.5 ? "score-mid" : "score-low";
+    const date = new Date(s.created_at * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const stage = STAGE_LABELS[s.stage] || s.stage || "-";
+    return `<tr>
+      <td><strong>${esc(s.name)}</strong></td>
+      <td>${esc(s.business) || "-"}</td>
+      <td>${stage}</td>
+      <td><span class="score-badge ${scoreClass}">${score}</span></td>
+      <td class="maturity-badge">${esc(s.maturity_label) || "-"}</td>
+      <td>${date}</td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="showDetail(${s.id})">View</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSubmission(${s.id})" style="margin-left:4px">Delete</button>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function filterTable() {
+  const q = $("search-input").value.toLowerCase();
+  const filtered = allSubmissions.filter(s =>
+    (s.name || "").toLowerCase().includes(q) ||
+    (s.business || "").toLowerCase().includes(q)
+  );
+  renderTable(filtered);
+}
+
+function showDetail(id) {
+  const s = allSubmissions.find(x => x.id === id);
+  if (!s) return;
+
+  $("detail-name").textContent = s.name || "Unnamed";
+  const date = new Date(s.created_at * 1000).toLocaleString();
+  $("detail-info").innerHTML = `
+    <div class="detail-item"><label>Business</label><div class="val">${esc(s.business) || "-"}</div></div>
+    <div class="detail-item"><label>Stage</label><div class="val">${STAGE_LABELS[s.stage] || s.stage || "-"}</div></div>
+    <div class="detail-item"><label>Region</label><div class="val">${REGION_LABELS[s.region] || s.region || "-"}</div></div>
+    <div class="detail-item"><label>Date</label><div class="val">${date}</div></div>
+    <div class="detail-item"><label>Overall Score</label><div class="val">${(s.overall_score || 0).toFixed(2)} / 5.0</div></div>
+    <div class="detail-item"><label>Maturity</label><div class="val">${esc(s.maturity_label) || "-"}</div></div>
+    ${s.coachability_insight ? `<div class="detail-item" style="grid-column:1/-1"><label>Coachability</label><div class="val">${esc(s.coachability_insight)}</div></div>` : ""}
+  `;
+
+  // Dimension bars
+  const dims = Array.isArray(s.dimension_scores) ? s.dimension_scores : [];
+  $("detail-dimensions").innerHTML = dims.map(d => `
+    <div class="dim-bar-wrap">
+      <div class="dim-bar-label"><span>${esc(d.label || d.key)}</span><span>${(d.score || 0).toFixed(1)} - ${esc(d.maturity || "")}</span></div>
+      <div class="dim-bar"><div class="dim-bar-fill" style="width:${((d.score || 0)/5*100)}%;background:${d.score >= 3.5 ? '#27AE60' : d.score >= 2.5 ? '#F39C12' : '#E74C3C'}"></div></div>
+    </div>
+  `).join("");
+
+  // Patterns
+  const patterns = Array.isArray(s.patterns) ? s.patterns : [];
+  $("detail-patterns").innerHTML = patterns.length ? `<h3 style="font-family:'Playfair Display',serif;margin-bottom:0.5rem">Patterns</h3><ul style="padding-left:1.2rem;font-size:14px">${patterns.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>` : "";
+
+  // Consulting recommendation
+  $("detail-consulting").innerHTML = s.consulting_headline ? `
+    <h3 style="font-family:'Playfair Display',serif;margin-bottom:0.5rem">Consulting Recommendation</h3>
+    <div style="background:#f9f9fb;border-radius:8px;padding:14px">
+      <div style="font-weight:600;margin-bottom:4px">${esc(s.consulting_headline)}</div>
+      <div style="font-size:14px;color:#666">${esc(s.consulting_body)}</div>
+    </div>
+  ` : "";
+
+  // Reflections
+  const refs = Array.isArray(s.reflections) ? s.reflections : [];
+  $("detail-reflections").innerHTML = refs.length ? `
+    <h3 style="font-family:'Playfair Display',serif;margin-bottom:0.5rem">Reflections</h3>
+    ${refs.map(r => `<div class="reflection-item"><div class="q">${esc(r.question)}</div><div class="a">${esc(r.answer)}</div></div>`).join("")}
+  ` : "";
+
+  // Action steps
+  const steps = Array.isArray(s.action_steps) ? s.action_steps : [];
+  $("detail-actions").innerHTML = steps.length ? `
+    <h3 style="font-family:'Playfair Display',serif;margin-bottom:0.5rem">Recommended Actions</h3>
+    <ol style="padding-left:1.2rem;font-size:14px">${steps.map(st=>`<li style="margin-bottom:4px">${esc(st)}</li>`).join("")}</ol>
+  ` : "";
+
+  $("detail-modal").classList.add("active");
+}
+
+function closeDetailModal() { $("detail-modal").classList.remove("active"); }
+$("detail-modal").addEventListener("click", e => { if (e.target === $("detail-modal")) closeDetailModal(); });
+
+function showResetConfirm() { $("reset-confirm").classList.add("active"); }
+function hideResetConfirm() { $("reset-confirm").classList.remove("active"); }
+
+async function doReset() {
+  hideResetConfirm();
+  await fetch(API + "/api/reset", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password })
+  });
+  refreshData();
+}
+
+async function deleteSubmission(id) {
+  if (!confirm("Delete this submission?")) return;
+  await fetch(API + "/api/submissions/" + id, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password })
+  });
+  refreshData();
+}
+
+function esc(s) {
+  if (!s) return "";
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+</script>
+</body>
+</html>
