@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: consulting-dashboard
+    runtime: docker
+    plan: free
+    healthCheckPath: /admin
+    envVars:
+      - key: ADMIN_PASSWORD
+        value: mozumder123
+      - key: DB_DIR
+        value: /data
+    disk:
+      name: dashboard-data
+      mountPath: /data
+      sizeGB: 1
