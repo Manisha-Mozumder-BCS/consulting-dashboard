@@ -9,7 +9,3 @@ services:
         value: mozumder123
       - key: DB_DIR
         value: /data
-    disk:
-      name: dashboard-data
-      mountPath: /data
-      sizeGB: 1
