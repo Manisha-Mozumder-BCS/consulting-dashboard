@@ -9,3 +9,9 @@ services:
         value: mozumder123
       - key: DB_DIR
         value: /data
+      # Set this in the Render dashboard to a free managed Postgres connection
+      # string (e.g. from Neon) so submissions persist permanently across
+      # restarts and redeploys. Without it, data lives in an ephemeral SQLite
+      # file that Render's free tier wipes on every spin-down.
+      - key: DATABASE_URL
+        sync: false
