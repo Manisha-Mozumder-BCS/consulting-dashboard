@@ -14,15 +14,28 @@ Admin dashboard for the Entrepreneur Readiness Assessment Tool by Manisha Mozumd
 ## Tech Stack
 
 - **Backend**: FastAPI (Python)
-- **Database**: SQLite with persistent volume
+- **Database**: Postgres in production (via `DATABASE_URL`), SQLite fallback for local dev
 - **Frontend**: Vanilla HTML/CSS/JS with Chart.js
-- **Deployment**: Fly.io
+- **Deployment**: Render (Docker)
+
+## Data persistence
+
+Set the `DATABASE_URL` environment variable to a Postgres connection string
+(e.g. a free permanent database from [Neon](https://neon.tech)) so submissions
+persist across restarts and redeploys. This is required on hosts with an
+ephemeral filesystem such as Render's free tier — without it, submissions are
+stored in a local SQLite file that gets wiped whenever the instance spins down.
+
+When `DATABASE_URL` is unset, the app falls back to SQLite at `DB_DIR/submissions.db`.
 
 ## Local Development
 
 ```bash
-pip install fastapi uvicorn
-DB_DIR=./data ADMIN_PASSWORD=mozumder123 uvicorn app:app --reload --port 8000
+pip install -r requirements.txt
+# SQLite (local):
+DB_DIR=./data ADMIN_PASSWORD=mozumder123 uvicorn main:app --reload --port 8000
+# or against Postgres:
+DATABASE_URL=postgresql://user:pass@host/db ADMIN_PASSWORD=mozumder123 uvicorn main:app --reload --port 8000
 ```
 
 Then visit http://localhost:8000/admin

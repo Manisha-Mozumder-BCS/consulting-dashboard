@@ -19,15 +19,55 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# When DATABASE_URL is set (e.g. a free managed Postgres such as Neon), data is
+# stored there so it persists permanently across restarts and redeploys.
+# Otherwise we fall back to a local SQLite file (fine for local development, but
+# NOT durable on ephemeral hosts like Render's free tier without a disk).
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+IS_POSTGRES = DATABASE_URL.startswith("postgres")
+
+if IS_POSTGRES:
+    import psycopg
+    from psycopg.rows import dict_row
+
 DB_DIR = Path(os.environ.get("DB_DIR", "/data"))
 DB_PATH = DB_DIR / "submissions.db"
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "mozumder123")
 
 
+def _sql(query: str) -> str:
+    """Translate the shared '?' placeholder style to Postgres '%s' when needed."""
+    return query.replace("?", "%s") if IS_POSTGRES else query
+
+
 def init_db():
-    DB_DIR.mkdir(parents=True, exist_ok=True)
-    with get_db() as conn:
-        conn.execute("""
+    if IS_POSTGRES:
+        create = """
+            CREATE TABLE IF NOT EXISTS submissions (
+                id SERIAL PRIMARY KEY,
+                created_at DOUBLE PRECISION NOT NULL,
+                name TEXT NOT NULL,
+                business TEXT DEFAULT '',
+                stage TEXT DEFAULT '',
+                region TEXT DEFAULT '',
+                overall_score DOUBLE PRECISION DEFAULT 0,
+                maturity_label TEXT DEFAULT '',
+                dimension_scores TEXT DEFAULT '[]',
+                patterns TEXT DEFAULT '[]',
+                strengths TEXT DEFAULT '[]',
+                gaps TEXT DEFAULT '[]',
+                action_steps TEXT DEFAULT '[]',
+                reflections TEXT DEFAULT '[]',
+                coachability_insight TEXT DEFAULT '',
+                consulting_headline TEXT DEFAULT '',
+                consulting_body TEXT DEFAULT '',
+                environment_label TEXT DEFAULT '',
+                environment_conditions TEXT DEFAULT '[]',
+                raw_answers TEXT DEFAULT '[]'
+            )
+        """
+    else:
+        create = """
             CREATE TABLE IF NOT EXISTS submissions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 created_at REAL NOT NULL,
@@ -50,18 +90,28 @@ def init_db():
                 environment_conditions TEXT DEFAULT '[]',
                 raw_answers TEXT DEFAULT '[]'
             )
-        """)
+        """
+    with get_db() as conn:
+        conn.execute(create)
         conn.commit()
 
 
 @contextmanager
 def get_db():
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
-    try:
-        yield conn
-    finally:
-        conn.close()
+    if IS_POSTGRES:
+        conn = psycopg.connect(DATABASE_URL, row_factory=dict_row, autocommit=True)
+        try:
+            yield conn
+        finally:
+            conn.close()
+    else:
+        DB_DIR.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        try:
+            yield conn
+        finally:
+            conn.close()
 
 
 @app.on_event("startup")
@@ -73,7 +123,7 @@ def startup():
 async def submit_assessment(request: Request):
     data = await request.json()
     with get_db() as conn:
-        conn.execute("""
+        conn.execute(_sql("""
             INSERT INTO submissions (
                 created_at, name, business, stage, region,
                 overall_score, maturity_label, dimension_scores,
@@ -82,7 +132,7 @@ async def submit_assessment(request: Request):
                 consulting_headline, consulting_body,
                 environment_label, environment_conditions, raw_answers
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
+        """), (
             time.time(),
             data.get("name", ""),
             data.get("business", ""),
@@ -214,7 +264,7 @@ async def delete_submission(submission_id: int, request: Request):
     if data.get("password") != ADMIN_PASSWORD:
         return JSONResponse(status_code=401, content={"error": "Unauthorized"})
     with get_db() as conn:
-        conn.execute("DELETE FROM submissions WHERE id = ?", (submission_id,))
+        conn.execute(_sql("DELETE FROM submissions WHERE id = ?"), (submission_id,))
         conn.commit()
     return {"status": "ok"}
 
