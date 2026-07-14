@@ -265,12 +265,15 @@ tbody tr:hover { background: #f9f9fb; }
     <button class="modal-close" onclick="closeDetailModal()">&times;</button>
     <h2 id="detail-name"></h2>
     <div class="detail-grid" id="detail-info"></div>
+    <div id="detail-service" style="margin-bottom:1.5rem"></div>
     <h3 style="font-family:'Playfair Display',serif;margin-bottom:0.75rem">Dimension Scores</h3>
     <div id="detail-dimensions" style="margin-bottom:1.5rem"></div>
+    <div id="detail-strengths-gaps" style="margin-bottom:1.5rem"></div>
     <div id="detail-patterns" style="margin-bottom:1.5rem"></div>
     <div id="detail-consulting" style="margin-bottom:1.5rem"></div>
     <div id="detail-reflections" style="margin-bottom:1.5rem"></div>
-    <div id="detail-actions" style="margin-bottom:1rem"></div>
+    <div id="detail-actions" style="margin-bottom:1.5rem"></div>
+    <div id="detail-environment" style="margin-bottom:1rem"></div>
   </div>
 </div>
 
@@ -471,6 +474,27 @@ function showDetail(id) {
     ${s.coachability_insight ? `<div class="detail-item" style="grid-column:1/-1"><label>Coachability</label><div class="val">${esc(s.coachability_insight)}</div></div>` : ""}
   `;
 
+  // Recommended service (matched to the entrepreneur's stage/profile)
+  const svc = s.recommended_service && typeof s.recommended_service === "object" ? s.recommended_service : null;
+  if (svc && svc.primary && svc.primary.name) {
+    const p = svc.primary;
+    const sec = svc.secondary && svc.secondary.name ? svc.secondary : null;
+    $("detail-service").innerHTML = `
+      <h3 style="font-family:'Playfair Display',serif;margin-bottom:0.5rem">Recommended Service</h3>
+      <div style="background:#eef4ff;border:1px solid #d6e2fb;border-radius:10px;padding:16px">
+        <div style="display:inline-block;background:#25406b;color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:6px;margin-bottom:8px">BEST MATCH</div>
+        <div style="font-weight:700;font-size:16px;margin-bottom:4px">${esc(p.name)}</div>
+        ${p.desc ? `<div style="font-size:13px;color:#555;line-height:1.5;margin-bottom:8px">${esc(p.desc)}</div>` : ""}
+        ${p.forWhom ? `<div style="font-size:13px;color:#666;margin-bottom:3px"><strong>Best for:</strong> ${esc(p.forWhom)}</div>` : ""}
+        ${p.deliverables ? `<div style="font-size:13px;color:#666;margin-bottom:3px"><strong>Key deliverables:</strong> ${esc(p.deliverables)}</div>` : ""}
+        ${p.youGet ? `<div style="font-size:13px;color:#666"><strong>Core value:</strong> ${esc(p.youGet)}</div>` : ""}
+        ${svc.reason ? `<div style="font-size:13px;color:#444;font-style:italic;background:#fff;border-radius:6px;padding:10px;margin-top:10px">${esc(svc.reason)}</div>` : ""}
+        ${sec ? `<div style="font-size:12px;color:#888;margin-top:10px"><strong>Also worth considering:</strong> ${esc(sec.name)}</div>` : ""}
+      </div>`;
+  } else {
+    $("detail-service").innerHTML = "";
+  }
+
   // Dimension bars
   const dims = Array.isArray(s.dimension_scores) ? s.dimension_scores : [];
   $("detail-dimensions").innerHTML = dims.map(d => `
@@ -479,6 +503,18 @@ function showDetail(id) {
       <div class="dim-bar"><div class="dim-bar-fill" style="width:${((d.score || 0)/5*100)}%;background:${d.score >= 3.5 ? '#27AE60' : d.score >= 2.5 ? '#F39C12' : '#E74C3C'}"></div></div>
     </div>
   `).join("");
+
+  // Strengths & gaps
+  const strengths = Array.isArray(s.strengths) ? s.strengths : [];
+  const gaps = Array.isArray(s.gaps) ? s.gaps : [];
+  const pill = (label, score, color) => `<span style="display:inline-block;background:${color};color:#fff;font-size:12px;padding:4px 10px;border-radius:20px;margin:0 6px 6px 0">${esc(label)} (${(score||0).toFixed(1)})</span>`;
+  if (strengths.length || gaps.length) {
+    $("detail-strengths-gaps").innerHTML = `
+      ${strengths.length ? `<div style="margin-bottom:10px"><div style="font-size:13px;font-weight:600;color:#555;margin-bottom:6px">Strengths</div>${strengths.map(x=>pill(x.label,x.score,'#27AE60')).join("")}</div>` : ""}
+      ${gaps.length ? `<div><div style="font-size:13px;font-weight:600;color:#555;margin-bottom:6px">Priority Gaps</div>${gaps.map(x=>pill(x.label,x.score,'#E74C3C')).join("")}</div>` : ""}`;
+  } else {
+    $("detail-strengths-gaps").innerHTML = "";
+  }
 
   // Patterns
   const patterns = Array.isArray(s.patterns) ? s.patterns : [];
@@ -506,6 +542,23 @@ function showDetail(id) {
     <h3 style="font-family:'Playfair Display',serif;margin-bottom:0.5rem">Recommended Actions</h3>
     <ol style="padding-left:1.2rem;font-size:14px">${steps.map(st=>`<li style="margin-bottom:4px">${esc(st)}</li>`).join("")}</ol>
   ` : "";
+
+  // Environment context
+  const envConds = Array.isArray(s.environment_conditions) ? s.environment_conditions : [];
+  if (s.environment_label || envConds.length) {
+    $("detail-environment").innerHTML = `
+      <h3 style="font-family:'Playfair Display',serif;margin-bottom:0.5rem">Environment${s.environment_label ? " — " + esc(s.environment_label) : ""}</h3>
+      ${envConds.length ? `<ul style="padding-left:1.2rem;font-size:14px">${envConds.map(c=>{
+        if (c && typeof c === "object") {
+          const badge = c.type ? `<span style="font-size:10px;font-weight:600;text-transform:uppercase;color:#fff;background:${c.type==='advantage'?'#27AE60':'#E67E22'};border-radius:4px;padding:1px 6px;margin-right:6px">${esc(c.type)}</span>` : "";
+          const src = c.source ? ` <span style="color:#999;font-size:12px">(${esc(c.source)})</span>` : "";
+          return `<li style="margin-bottom:6px">${badge}${esc(c.text || c.label || "")}${src}</li>`;
+        }
+        return `<li style="margin-bottom:4px">${esc(c)}</li>`;
+      }).join("")}</ul>` : ""}`;
+  } else {
+    $("detail-environment").innerHTML = "";
+  }
 
   $("detail-modal").classList.add("active");
 }
