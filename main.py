@@ -63,6 +63,7 @@ def init_db():
                 consulting_body TEXT DEFAULT '',
                 environment_label TEXT DEFAULT '',
                 environment_conditions TEXT DEFAULT '[]',
+                recommended_service TEXT DEFAULT '{}',
                 raw_answers TEXT DEFAULT '[]'
             )
         """
@@ -88,12 +89,39 @@ def init_db():
                 consulting_body TEXT DEFAULT '',
                 environment_label TEXT DEFAULT '',
                 environment_conditions TEXT DEFAULT '[]',
+                recommended_service TEXT DEFAULT '{}',
                 raw_answers TEXT DEFAULT '[]'
             )
         """
     with get_db() as conn:
         conn.execute(create)
+        _ensure_columns(conn)
         conn.commit()
+
+
+# Columns added after the original schema shipped. Applied idempotently so
+# existing databases (e.g. an already-created Neon table) are upgraded in place
+# without losing any rows.
+_ADDED_COLUMNS = {
+    "recommended_service": "TEXT DEFAULT '{}'",
+}
+
+
+def _existing_columns(conn) -> set:
+    if IS_POSTGRES:
+        rows = conn.execute(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'submissions'"
+        ).fetchall()
+        return {r["column_name"] for r in rows}
+    rows = conn.execute("PRAGMA table_info(submissions)").fetchall()
+    return {r["name"] for r in rows}
+
+
+def _ensure_columns(conn):
+    existing = _existing_columns(conn)
+    for col, ddl in _ADDED_COLUMNS.items():
+        if col not in existing:
+            conn.execute(f"ALTER TABLE submissions ADD COLUMN {col} {ddl}")
 
 
 @contextmanager
@@ -130,8 +158,9 @@ async def submit_assessment(request: Request):
                 patterns, strengths, gaps, action_steps,
                 reflections, coachability_insight,
                 consulting_headline, consulting_body,
-                environment_label, environment_conditions, raw_answers
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                environment_label, environment_conditions,
+                recommended_service, raw_answers
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """), (
             time.time(),
             data.get("name", ""),
@@ -151,6 +180,7 @@ async def submit_assessment(request: Request):
             data.get("consulting_body", ""),
             data.get("environment_label", ""),
             json.dumps(data.get("environment_conditions", [])),
+            json.dumps(data.get("recommended_service", {})),
             json.dumps(data.get("raw_answers", [])),
         ))
         conn.commit()
@@ -175,7 +205,8 @@ async def get_submissions(password: str = ""):
     for row in rows:
         r = dict(row)
         for field in ["dimension_scores", "patterns", "strengths", "gaps",
-                       "action_steps", "reflections", "environment_conditions", "raw_answers"]:
+                       "action_steps", "reflections", "environment_conditions",
+                       "recommended_service", "raw_answers"]:
             try:
                 r[field] = json.loads(r[field])
             except (json.JSONDecodeError, TypeError):
